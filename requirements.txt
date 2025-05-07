@@ -1,19 +1,15 @@
-# Flask dan dependensi versinya (lama)
-click==7.1.2
-Flask==1.1.2
-gunicorn==20.0.4
-itsdangerous==1.1.0
-Jinja2==2.11.3
-MarkupSafe==1.1.1
-Werkzeug==1.0.1
-
-# Tambahan untuk aplikasi kamu
+# Web Framework
+Flask==2.2.5
 flask-cors==3.0.10
-requests==2.25.1
-numpy==1.19.5
-opencv-python==4.5.5.62
-ultralytics==8.0.20
+gunicorn==20.1.0
+requests==2.31.0
 
-# OCR
+# YOLO + OpenCV
+ultralytics==8.0.20
+opencv-python==4.8.1.78
+numpy==1.23.5
+
+# OCR Support
 paddleocr==2.6.1.3
+# Catatan: Versi paddlepaddle di bawah ini disarankan untuk CPU
 paddlepaddle==2.5.1
