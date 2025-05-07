@@ -11,5 +11,7 @@ numpy==1.23.5
 
 # OCR Support
 paddleocr==2.6.1.3
-# Catatan: Versi paddlepaddle di bawah ini disarankan untuk CPU
-paddlepaddle==2.5.1
+paddlepaddle==2.5.1  # Disarankan untuk CPU, gunakan Python <=3.11
+
+# Tools untuk kompatibilitas jika pakai Python >=3.12
+setuptools==69.5.1
