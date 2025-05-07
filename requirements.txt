@@ -5,7 +5,7 @@ gunicorn==20.1.0
 requests==2.31.0
 
 # YOLO + OpenCV
-ultralytics==8.0.18  # Gunakan versi yang tersedia atau coba yang terbaru
+ultralytics==8.0.122  # Versi terbaru ultralytics
 opencv-python==4.8.1.78
 numpy==1.23.5
 
