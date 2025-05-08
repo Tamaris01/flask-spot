@@ -25,8 +25,8 @@ ENV PATH="/venv/bin:$PATH"
 # Install dependencies Python di dalam virtual environment
 RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf /root/.cache
 
-# Expose port Flask/Gunicorn
-EXPOSE 5000
+# Expose port yang akan digunakan Gunicorn (8080 sesuai Railway)
+EXPOSE 8080
 
-# Jalankan app dengan gunicorn (file app.py harus punya "app = Flask(__name__)")
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:$PORT", "--workers", "2", "--threads", "2", "--timeout", "120"]
+# Jalankan app dengan Gunicorn, bind ke 0.0.0.0:8080
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "2", "--timeout", "120"]
