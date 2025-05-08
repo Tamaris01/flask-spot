@@ -49,12 +49,12 @@ def frame_to_base64(frame):
     encoded_frame = base64.b64encode(buffer).decode('utf-8')
     return f"data:image/jpeg;base64,{encoded_frame}"
 
-@app.route('/upload_frame', methods=['POST'])
+@app.route('/upload_frame', methods=['POST', 'OPTIONS'])
 def upload_frame():
     global raw_frame
     try:
         data = request.get_json()
-        if 'image' not in data:
+        if not data or 'image' not in data:
             return jsonify({'error': 'No image provided'}), 400
 
         image_data = data['image'].split(',')[1]
@@ -94,22 +94,8 @@ def check_plate(plat_nomor):
             timeout=5
         )
         response.raise_for_status()
-        try:
-            return response.json()
-        except ValueError:
-            return {"error": "Invalid JSON from Laravel", "exists": False}
+        return response.json()
     except requests.exceptions.Timeout:
         return {"error": "Request timed out", "exists": False}
     except requests.exceptions.RequestException as e:
         return {"error": str(e), "exists": False}
-
-# Entry point untuk menjalankan aplikasi
-if __name__ == '__main__':
-    # Menjalankan loop deteksi di thread background
-    threading.Thread(target=detect_loop, daemon=True).start()
-
-    # Menggunakan port dinamis untuk Railway
-    port = int(os.environ.get('PORT', 5000))  # Railway memberikan port secara dinamis
-
-    # Gunakan Gunicorn di lingkungan produksi, pastikan debug=False
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)  # Gunakan use_reloader=False agar tidak ada multiple thread saat reload
