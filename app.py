@@ -22,7 +22,7 @@ display_frame = None
 result_text = "-"
 lock = threading.Lock()
 
-# Thread loop for real-time detection
+# Thread loop untuk deteksi secara real-time
 def detect_loop():
     global raw_frame, display_frame, result_text
     last_result = "-"
@@ -103,7 +103,13 @@ def check_plate(plat_nomor):
     except requests.exceptions.RequestException as e:
         return {"error": str(e), "exists": False}
 
-
+# Entry point untuk menjalankan aplikasi
 if __name__ == '__main__':
+    # Menjalankan loop deteksi di thread background
     threading.Thread(target=detect_loop, daemon=True).start()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+
+    # Menggunakan port dinamis untuk Railway
+    port = int(os.environ.get('PORT', 5000))  # Railway memberikan port secara dinamis
+
+    # Gunakan Gunicorn di lingkungan produksi, pastikan debug=False
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)  # Gunakan use_reloader=False agar tidak ada multiple thread saat reload
