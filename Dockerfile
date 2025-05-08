@@ -4,8 +4,8 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    ccache \                     # Tambahkan ini
-    && rm -rf /var/lib/apt/lists/*
+    ccache \
+    && rm -rf /var/lib/apt/lists/*  # Menghapus cache apt setelah instalasi
 
 # Set working directory
 WORKDIR /app
