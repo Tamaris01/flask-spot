@@ -99,3 +99,10 @@ def check_plate(plat_nomor):
         return {"error": "Request timed out", "exists": False}
     except requests.exceptions.RequestException as e:
         return {"error": str(e), "exists": False}
+
+# Bagian ini wajib ditambahkan agar Railway tahu port yang harus digunakan
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # Ambil PORT dari environment
+    detect_thread = threading.Thread(target=detect_loop, daemon=True)
+    detect_thread.start()
+    app.run(host="0.0.0.0", port=port)
