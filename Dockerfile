@@ -1,20 +1,17 @@
-FROM python:3.11-slim
+# Gunakan image Python resmi
+FROM python:3.10-slim
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    ccache \
-    && rm -rf /var/lib/apt/lists/*  # Menghapus cache apt setelah instalasi
-
-# Set working directory
+# Buat working directory
 WORKDIR /app
 
-# Copy project files
+# Copy semua file ke container
 COPY . .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Run your app
-CMD ["python", "app.py"]
+# Expose port Flask/Gunicorn
+EXPOSE 5000
+
+# Jalankan app dengan gunicorn (file app.py harus punya "app = Flask(__name__)")
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "2", "--timeout", "120"]
