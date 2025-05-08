@@ -89,13 +89,20 @@ def result():
 @app.route('/check_plate/<plat_nomor>', methods=['GET'])
 def check_plate(plat_nomor):
     try:
-        response = requests.get(f'https://laravel-spot-production.up.railway.app/api/check_plate/{plat_nomor}')
-        if response.status_code == 200:
+        response = requests.get(
+            f'https://laravel-spot-production.up.railway.app/api/check_plate/{plat_nomor}',
+            timeout=5
+        )
+        response.raise_for_status()
+        try:
             return response.json()
-        else:
-            return {"error": "Failed to connect to Laravel", "exists": False}
+        except ValueError:
+            return {"error": "Invalid JSON from Laravel", "exists": False}
+    except requests.exceptions.Timeout:
+        return {"error": "Request timed out", "exists": False}
     except requests.exceptions.RequestException as e:
         return {"error": str(e), "exists": False}
+
 
 if __name__ == '__main__':
     threading.Thread(target=detect_loop, daemon=True).start()
