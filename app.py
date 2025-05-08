@@ -22,7 +22,6 @@ display_frame = None
 result_text = "-"
 lock = threading.Lock()
 
-# Thread loop untuk deteksi secara real-time
 def detect_loop():
     global raw_frame, display_frame, result_text
     last_result = "-"
@@ -41,7 +40,7 @@ def detect_loop():
                         print(f"[INFO] Detected: {ocr_text}")
             except Exception as e:
                 print(f"[ERROR] Detection failed: {e}")
-        
+
         time.sleep(0.1)
 
 def frame_to_base64(frame):
@@ -100,9 +99,11 @@ def check_plate(plat_nomor):
     except requests.exceptions.RequestException as e:
         return {"error": str(e), "exists": False}
 
-# Bagian ini wajib ditambahkan agar Railway tahu port yang harus digunakan
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Ambil PORT dari environment
+# Jangan jalankan app.run() saat menggunakan Gunicorn di Docker!
+# Thread detect_loop harus dijalankan saat container start, kita buat fungsi init
+def start_background_thread():
     detect_thread = threading.Thread(target=detect_loop, daemon=True)
     detect_thread.start()
-    app.run(host="0.0.0.0", port=port)
+
+# Gunicorn akan memanggil app ini, kita mulai thread sebelum app dipakai
+start_background_thread()
