@@ -3,6 +3,7 @@ FROM python:3.10-slim
 
 # Install dependencies sistem yang diperlukan untuk OpenCV dan pustaka lainnya
 RUN apt-get update && apt-get install -y \
+    ccache \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
