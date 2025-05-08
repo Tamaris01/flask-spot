@@ -17,7 +17,11 @@ WORKDIR /app
 # Copy semua file ke container
 COPY . .
 
-# Install dependencies Python
+# Install virtual environment dan aktivasi
+RUN python -m venv /venv
+ENV PATH="/venv/bin:$PATH"
+
+# Install dependencies Python di dalam virtual environment
 RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf /root/.cache
 
 # Expose port Flask/Gunicorn
