@@ -25,11 +25,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Salin semua file aplikasi ke dalam container
 COPY . .
 
-# Set environment variable fallback (kalau run local)
+# Set fallback (untuk local)
 ENV PORT=8000
 
-# Expose port default (Railway akan override dengan PORT env)
-EXPOSE 8000
+# Dokumentasikan port
+EXPOSE 8080
 
 # Jalankan Gunicorn dengan bind ke $PORT
 CMD ["gunicorn", "--bind", "0.0.0.0:${PORT}", "app:app"]
