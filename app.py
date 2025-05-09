@@ -44,6 +44,12 @@ def detect_loop():
         
         time.sleep(0.1)
 
+@app.before_first_request
+def start_detection_thread():
+    thread = threading.Thread(target=detect_loop, daemon=True)
+    thread.start()
+    print("[INFO] Detection thread started.")
+
 def frame_to_base64(frame):
     _, buffer = cv2.imencode('.jpg', frame)
     encoded_frame = base64.b64encode(buffer).decode('utf-8')
@@ -96,7 +102,3 @@ def check_plate(plat_nomor):
             return {"error": "Failed to connect to Laravel", "exists": False}
     except requests.exceptions.RequestException as e:
         return {"error": str(e), "exists": False}
-
-if __name__ == '__main__':
-    threading.Thread(target=detect_loop, daemon=True).start()
-    app.run(host='0.0.0.0', port=8080, debug=False)
