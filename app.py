@@ -71,7 +71,7 @@ def upload_frame():
         return jsonify({'message': 'Frame diterima dan diproses dengan sukses'}), 200
 
     except Exception as e:
-        return jsonify({'error': f"Terjadi kesalahan: {str(e)}"}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/get_processed_frame', methods=['GET'])
 def get_processed_frame():
@@ -97,18 +97,16 @@ def check_plate(plat_nomor):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.Timeout:
-        return jsonify({"error": "Waktu habis", "exists": False}), 408
+        return {"error": "Waktu habis", "exists": False}
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Terjadi kesalahan: {str(e)}", "exists": False}), 500
+        return {"error": str(e), "exists": False}
 
 # Mulai thread deteksi sebelum aplikasi digunakan
 def start_background_thread():
     detect_thread = threading.Thread(target=detect_loop, daemon=True)
     detect_thread.start()
 
-# Gunicorn akan memanggil aplikasi ini, jadi kita mulai thread latar belakang sebelum aplikasi mulai menangani request
+# Mulai background thread
 start_background_thread()
 
-if __name__ == '__main__':
-    # Jangan jalankan app.run() di sini, karena Gunicorn yang akan menanganinya
-    pass
+# Tidak perlu menjalankan app.run() di sini karena Gunicorn yang akan menanganinya
