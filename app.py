@@ -110,3 +110,7 @@ def start_background_thread():
 start_background_thread()
 
 # Tidak perlu menjalankan app.run() di sini karena Gunicorn yang akan menanganinya
+if __name__ == "__main__":
+    # Gunakan PORT dari environment variable, default ke 8000
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
