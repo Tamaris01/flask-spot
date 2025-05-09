@@ -1,7 +1,7 @@
 # Gunakan image Python resmi sebagai base image
 FROM python:3.9-slim
 
-# Install dependencies sistem yang diperlukan untuk OpenCV dan pustaka lainnya
+# Install dependencies sistem (untuk OpenCV, PaddleOCR, dsb)
 RUN apt-get update && apt-get install -y \
     build-essential \
     ccache \
@@ -19,19 +19,17 @@ WORKDIR /app
 # Salin file requirements.txt ke container
 COPY requirements.txt .
 
-# Install dependencies dari requirements.txt
+# Install dependencies Python
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Salin semua file aplikasi ke dalam container
 COPY . .
 
+# Set environment variable fallback (kalau run local)
+ENV PORT=8000
 
-# Set environment variable untuk Flask
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
+# Expose port default (Railway akan override dengan PORT env)
+EXPOSE 8000
 
-# Expose port Flask
-EXPOSE 5000
-
-# Jalankan aplikasi Flask menggunakan Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Jalankan Gunicorn dengan bind ke $PORT
+CMD ["gunicorn", "--bind", "0.0.0.0:${PORT}", "app:app"]
