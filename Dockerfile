@@ -1,35 +1,32 @@
-# Gunakan image Python resmi sebagai base image
 FROM python:3.9-slim
 
-# Install dependencies sistem (untuk OpenCV, PaddleOCR, dsb)
+# 1. Install system deps
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    ccache \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libfontconfig1 \
-    libgl1-mesa-glx \
+        build-essential wget tar \
+        libglib2.0-0 libsm6 libxext6 libxrender1 \
+        libfontconfig1 libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Salin file requirements.txt ke container
+# 2. Copy requirements & install
 COPY requirements.txt .
-
-# Install dependencies Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Salin semua file aplikasi ke dalam container
+# 3. Pre-download OCR model ke cache PaddleOCR
+#    (sesuaikan URL sesuai versi tar yang diperlukan)
+RUN mkdir -p /root/.paddleocr/whl/rec/en/en_PP-OCRv4_rec_infer && \
+    wget -qO- https://paddleocr.bj.bcebos.com/PP-OCRv4/english/en_PP-OCRv4_rec_infer.tar \
+      | tar -x -C /root/.paddleocr/whl/rec/en/en_PP-OCRv4_rec_infer && \
+    mkdir -p /root/.paddleocr/whl/cls/ch_ppocr_mobile_v2.0_cls_infer && \
+    wget -qO- https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_cls_infer.tar \
+      | tar -x -C /root/.paddleocr/whl/cls/ch_ppocr_mobile_v2.0_cls_infer
+
+# 4. Copy aplikasi
 COPY . .
 
-# Set fallback (untuk local)
-ENV PORT=8000
-
-# Dokumentasikan port
+ENV PORT=8080
 EXPOSE 8080
 
-# Jalankan Gunicorn dengan bind ke $PORT
-CMD ["gunicorn", "--bind", "0.0.0.0:${PORT}", "app:app"]
+# 5. Jalankan dengan Gunicorn
+CMD exec gunicorn --workers 2 --preload --bind 0.0.0.0:${PORT} app:app
