@@ -12,17 +12,18 @@ from detect_plate import detect_plate_image
 app = Flask(__name__)
 CORS(app)
 
+# Path ke model YOLO
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'best.pt')
 if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"❌ Model tidak ditemukan di: {MODEL_PATH}")
+    raise FileNotFoundError(f"Model tidak ditemukan di: {MODEL_PATH}")
 
-# Status global
+# Shared state untuk frame dan hasil
 raw_frame = None
 display_frame = None
 result_text = "-"
 lock = threading.Lock()
 
-# Loop deteksi yang berjalan di latar belakang
+# Fungsi background thread untuk deteksi plat nomor
 def detect_loop():
     global raw_frame, display_frame, result_text
     last_result = "-"
@@ -44,32 +45,39 @@ def detect_loop():
 
         time.sleep(0.1)
 
-# Fungsi untuk mengonversi frame menjadi base64
+# Mulai background thread saat modul diimpor
+threading.Thread(target=detect_loop, daemon=True).start()
+
+# Konversi frame OpenCV ke base64 string
 def frame_to_base64(frame):
     _, buffer = cv2.imencode('.jpg', frame)
-    encoded_frame = base64.b64encode(buffer).decode('utf-8')
-    return f"data:image/jpeg;base64,{encoded_frame}"
+    return f"data:image/jpeg;base64,{base64.b64encode(buffer).decode('utf-8')}"
 
-@app.route('/upload_frame', methods=['POST', 'OPTIONS'])
+@app.route('/')
+def home():
+    return "Plate Detection Service is up!"
+
+@app.route('/healthz')
+def healthz():
+    return "OK", 200
+
+@app.route('/upload_frame', methods=['POST'])
 def upload_frame():
     global raw_frame
-    try:
-        data = request.get_json()
-        if not data or 'image' not in data:
-            return jsonify({'error': 'Tidak ada gambar yang diberikan'}), 400
+    data = request.get_json(silent=True)
+    if not data or 'image' not in data:
+        return jsonify({'error': 'Tidak ada gambar yang diberikan'}), 400
 
-        image_data = data['image'].split(',')[1]
+    try:
+        image_data = data['image'].split(',', 1)[1]
         img_array = np.frombuffer(base64.b64decode(image_data), np.uint8)
         frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-
         if frame is None:
-            return jsonify({'error': 'Gagal mendekode gambar'}), 400
+            raise ValueError("Gagal mendekode gambar")
 
         with lock:
             raw_frame = frame
-
-        return jsonify({'message': 'Frame diterima dan diproses dengan sukses'}), 200
-
+        return jsonify({'message': 'Frame diterima dan diproses'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -78,9 +86,7 @@ def get_processed_frame():
     with lock:
         if display_frame is None:
             return jsonify({'error': 'Tidak ada frame untuk dikirim'}), 400
-
-        processed_frame_base64 = frame_to_base64(display_frame)
-        return jsonify({'frame': processed_frame_base64})
+        return jsonify({'frame': frame_to_base64(display_frame)})
 
 @app.route('/result', methods=['GET'])
 def result():
@@ -90,22 +96,16 @@ def result():
 @app.route('/check_plate/<plat_nomor>', methods=['GET'])
 def check_plate(plat_nomor):
     try:
-        response = requests.get(
+        resp = requests.get(
             f'https://laravel-spot-production.up.railway.app/api/check_plate/{plat_nomor}',
             timeout=5
         )
-        response.raise_for_status()
-        return response.json()
+        resp.raise_for_status()
+        return resp.json()
     except requests.exceptions.Timeout:
-        return {"error": "Waktu habis", "exists": False}
+        return jsonify({'error': 'Waktu habis', 'exists': False}), 504
     except requests.exceptions.RequestException as e:
-        return {"error": str(e), "exists": False}
+        return jsonify({'error': str(e), 'exists': False}), 502
 
-# Mulai thread deteksi sebelum aplikasi digunakan
-def start_background_thread():
-    detect_thread = threading.Thread(target=detect_loop, daemon=True)
-    detect_thread.start()
-
-# Mulai background thread
-start_background_thread()
-
+# NOTE: Tidak ada app.run() di sini. Gunakan Gunicorn untuk menjalankan aplikasi:
+#       gunicorn --bind 0.0.0.0:$PORT app:app
