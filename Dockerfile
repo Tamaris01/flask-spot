@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set environment variable fallback (kalau run local)
-ENV PORT=8000
+ENV PORT=8080
 
 # Expose port default (Railway akan override dengan PORT env)
 EXPOSE 8000
