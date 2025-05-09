@@ -17,7 +17,10 @@ ocr = PaddleOCR(
     table=False,
     layout=False,
     formula=False,
-    recovery=False
+    recovery=False,
+    # Gunakan models pruned .tar untuk efisiensi
+    det_model_dir='https://paddleocr.bj.bcebos.com/whl_v2.3/en_det_prune.tar',
+    rec_model_dir='https://paddleocr.bj.bcebos.com/whl_v2.3/en_rec_prune.tar'
 )
 
 # Cache untuk model YOLO
