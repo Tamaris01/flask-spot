@@ -22,26 +22,29 @@ display_frame = None
 result_text = "-"
 lock = threading.Lock()
 
-# Background detection thread
-threading.Thread(target=lambda: (
-    (time.sleep(0.1),
-     lock.acquire(),
-     (lambda frame:=raw_frame.copy() if raw_frame else None: (
-         lock.release(),
-         (lambda f=frame: (
-             (lambda out_txt=detect_plate_image(f, MODEL_PATH):
-                 setattr(globals(), 'display_frame', out_txt[0]) or setattr(globals(), 'result_text', out_txt[1])
-             ) if f else None
-         ))
-     ))
-    )
-), daemon=True).start()
+# Background detection loop (pengganti lambda bermasalah)
+def detection_loop():
+    global display_frame, result_text
+    while True:
+        time.sleep(0.1)
+        with lock:
+            frame = raw_frame.copy() if raw_frame is not None else None
+        if frame is not None:
+            out_img, out_txt = detect_plate_image(frame, MODEL_PATH)
+            with lock:
+                display_frame = out_img
+                result_text = out_txt
+
+# Start background thread
+threading.Thread(target=detection_loop, daemon=True).start()
 
 @app.route('/')
-def home(): return "Plate Detection Service is up!"
+def home():
+    return "Plate Detection Service is up!"
 
 @app.route('/healthz')
-def healthz(): return "OK", 200
+def healthz():
+    return "OK", 200
 
 @app.route('/upload_frame', methods=['POST'])
 def upload():
@@ -53,8 +56,10 @@ def upload():
         b64 = data['image'].split(',', 1)[1]
         arr = np.frombuffer(base64.b64decode(b64), np.uint8)
         f = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if f is None: raise ValueError("Decode failed")
-        with lock: raw_frame = f
+        if f is None:
+            raise ValueError("Decode failed")
+        with lock:
+            raw_frame = f
         return jsonify(message="OK"), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -62,13 +67,15 @@ def upload():
 @app.route('/get_processed_frame')
 def get_frame():
     with lock:
-        if display_frame is None: return jsonify(error="No processed"), 400
+        if display_frame is None:
+            return jsonify(error="No processed"), 400
         _, buf = cv2.imencode('.jpg', display_frame)
         return jsonify(frame="data:image/jpeg;base64," + base64.b64encode(buf).decode()), 200
 
 @app.route('/result')
 def result():
-    with lock: return jsonify(plate=result_text), 200
+    with lock:
+        return jsonify(plate=result_text), 200
 
 @app.route('/check_plate/<plat>')
 def check_plate(plat):
