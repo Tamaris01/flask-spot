@@ -4,9 +4,22 @@ import re
 from paddleocr import PaddleOCR
 import time
 
-ocr = PaddleOCR(use_angle_cls=True, lang='en')
-model_cache = None
+# Inisialisasi OCR ringan sekali di startup
+ocr = PaddleOCR(
+    use_angle_cls=False,  # matikan angle classification
+    lang='en',
+    det_model_dir='https://paddleocr.bj.bcebos.com/dygraph_v2.0/ppocr/en_det_prune_infer',
+    rec_model_dir='https://paddleocr.bj.bcebos.com/dygraph_v2.0/ppocr/en_rec_infer',
+    show_log=False,
+    rec_batch_num=1,
+    cpu_threads=2,
+    max_batch_size=1,
+    det=True, rec=True,
+    table=False, layout=False, formula=False, recovery=False
+)
 
+# Caching YOLO model
+model_cache = None
 def load_model(model_path):
     global model_cache
     if model_cache is None:
@@ -23,23 +36,24 @@ def format_license_plate(text):
     if match:
         part1 = match.group(1)
         part2 = match.group(2)
-        part3 = match.group(3) if match.group(3) else ""
+        part3 = match.group(3) or ""
         return f"{part1} {part2} {part3}".strip()
     return text
 
 def extract_text_paddle(preprocessed_img):
-    result = ocr.ocr(preprocessed_img, cls=True)
+    # Hanya deteksi & recognition
+    result = ocr.ocr(preprocessed_img, cls=False)
     for line in result:
         for box, (text, conf) in line:
             cleaned = ''.join(filter(str.isalnum, text.upper()))
-            match = re.search(r'^[A-Z]{1,2}[0-9]{1,4}[A-Z]{0,3}$', cleaned)
-            if match:
-                return format_license_plate(match.group(0))
+            if re.match(r'^[A-Z]{1,2}[0-9]{1,4}[A-Z]{0,3}$', cleaned):
+                return format_license_plate(cleaned)
     return None
 
 def detect_plate_image(frame, model_path):
     model = load_model(model_path)
 
+    # Resize frame untuk deteksi lebih cepat
     small_frame = cv2.resize(frame, (640, 480))
     results = model.predict(source=small_frame, conf=0.3, verbose=False)
 
@@ -49,25 +63,27 @@ def detect_plate_image(frame, model_path):
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             conf = float(box.conf[0])
 
+            # Skip kotak terlalu kecil
             if (x2 - x1) < 30 or (y2 - y1) < 15:
                 continue
 
+            # Skala kembali koordinat ke frame asli
             x_scale = frame.shape[1] / 640
             y_scale = frame.shape[0] / 480
-            x1 = int(x1 * x_scale)
-            x2 = int(x2 * x_scale)
-            y1 = int(y1 * y_scale)
-            y2 = int(y2 * y_scale)
+            x1, x2 = int(x1 * x_scale), int(x2 * x_scale)
+            y1, y2 = int(y1 * y_scale), int(y2 * y_scale)
 
+            # Gambar bounding box & label
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            label = f"Plate ({conf:.2f})"
-            cv2.putText(frame, label, (x1, y1 - 10),
+            cv2.putText(frame, f"Plate ({conf:.2f})", (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
+            # Crop & preprocess plat
             plate_img = frame[y1:y2, x1:x2]
             preprocessed_img = preprocess_plate(plate_img)
-            text = extract_text_paddle(preprocessed_img)
 
+            # OCR
+            text = extract_text_paddle(preprocessed_img)
             if text:
                 ocr_texts.append(text)
                 cv2.putText(frame, f"OCR: {text}", (x1, y2 + 25),
